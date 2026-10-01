@@ -12,12 +12,14 @@
   },
   "scripts": {
     "clean": "rm -rf dist *.tgz",
-    "build": "tsc",
-    "prepack": "npm run clean && npm install --no-save --no-audit --no-fund && npm run build",
+    "sync": "node scripts/sync-offload-client.mjs",
+    "build": "npm run sync && tsc",
+    "prepack": "npm run clean && npm run build",
     "test:sdk": "node --env-file=.env --import tsx tests/sdk-cos.ts"
   },
   "dependencies": {
-    "@tencentdb-agent-memory/memory-sdk-ts": "^1.0.0"
+    "@tencentdb-agent-memory/memory-sdk-ts": "^1.0.0",
+    "js-tiktoken": "^1.0.21"
   },
   "devDependencies": {
     "typescript": "^5.5.0"

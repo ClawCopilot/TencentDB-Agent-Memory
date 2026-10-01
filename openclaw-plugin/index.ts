@@ -15,8 +15,7 @@ import { performCapture } from "./src/hooks/capture.js";
 import { handleMemorySearch } from "./src/tools/memory-search.js";
 import { handleConversationSearch } from "./src/tools/conversation-search.js";
 import { handleReadCos } from "./src/tools/read-cos.js";
-// @ts-ignore — rootDir mismatch in openclaw-plugin tsconfig; resolved at bundle time by tsdown
-import { registerOffloadClient } from "../src/offload-client/index.js";
+import { registerOffloadClient } from "./src/offload-client/index.js";
 
 const TAG = "[memory-client]";
 
