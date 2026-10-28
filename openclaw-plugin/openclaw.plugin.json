@@ -28,8 +28,7 @@
           },
           "apiKey": {
             "type": "string",
-            "default": "sk-xxxx",
-            "description": "API Key for server authentication"
+            "description": "API Key for server authentication. Leave unset to use apiKeyFile, or fall back to the local default."
           },
           "instanceId": {
             "type": "string",
@@ -40,6 +39,10 @@
             "type": "boolean",
             "default": true,
             "description": "是否校验 HTTPS 证书。默认 true；仅自签证书测试环境需要显式设为 false"
+          },
+          "apiKeyFile": {
+            "type": "string",
+            "description": "Path to a file containing the API Key for server authentication. Keeps the secret out of OpenClaw config."
           }
         }
       },

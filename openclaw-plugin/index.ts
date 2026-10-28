@@ -9,6 +9,7 @@
  * 所有操作委托给远端 server。
  */
 
+import { readFileSync } from "node:fs";
 import { MemoryClient } from "@tencentdb-agent-memory/memory-sdk-ts";
 import { performRecall } from "./src/hooks/recall.js";
 import { performCapture } from "./src/hooks/capture.js";
@@ -23,6 +24,12 @@ const TAG = "[memory-client]";
 interface ServerConfig {
   url?: string;
   apiKey?: string;
+  /**
+   * Path to a file holding the API key. Preferred over `apiKey` so the secret
+   * stays out of OpenClaw's config (which is audited for plaintext secrets).
+   * `apiKey` still wins when both are set.
+   */
+  apiKeyFile?: string;
   instanceId?: string;
   rejectUnauthorized?: boolean;
 }
@@ -48,6 +55,23 @@ interface PluginConfig {
   offload?: OffloadConfig;
 }
 
+/**
+ * Read the server API key from a file. Keeps the secret out of OpenClaw
+ * config, which is audited for plaintext credentials.
+ */
+function readApiKeyFile(apiKeyFile: string | undefined): string | undefined {
+  if (!apiKeyFile) return undefined;
+  try {
+    const key = readFileSync(apiKeyFile, "utf8").trim();
+    return key || undefined;
+  } catch (error) {
+    console.warn(
+      `[memory-client] could not read server.apiKeyFile: ${(error as Error).message}`,
+    );
+    return undefined;
+  }
+}
+
 // Matches OpenClaw plugin register() signature: export default function register(api)
 export default function register(api: any) {
   // ── Read config (nested objects per configSchema) ──────────────────
@@ -58,7 +82,18 @@ export default function register(api: any) {
   const offload = cfg.offload ?? {};
 
   const serverUrl = server.url || "http://127.0.0.1:8420";
-  const apiKey = server.apiKey || "sk-xxxx";
+  // "sk-xxxx" is the historical schema default, not a real credential. OpenClaw
+  // materializes schema defaults into the validated plugin config, so treat it as
+  // "unset" and let apiKeyFile win.
+  const configuredApiKey =
+    server.apiKey && server.apiKey !== "sk-xxxx" ? server.apiKey : undefined;
+  const apiKeyFromFile = readApiKeyFile(server.apiKeyFile);
+  const apiKey = configuredApiKey || apiKeyFromFile || "sk-xxxx";
+  const apiKeySource = configuredApiKey
+    ? "config"
+    : apiKeyFromFile
+      ? "file"
+      : "default";
   const instanceId = server.instanceId || "default";
   const recallMaxResults = recall.maxResults ?? 5;
   const includePersona = recall.includePersona !== false;
@@ -85,7 +120,7 @@ export default function register(api: any) {
 
 
   api.logger.info?.(
-    `${TAG} Initialized: server=${serverUrl}, instance=${instanceId}, ` +
+    `${TAG} Initialized: server=${serverUrl}, instance=${instanceId}, apiKeySource=${apiKeySource}, ` +
     `recall(persona=${includePersona},sceneNav=${includeSceneNav},max=${recallMaxResults}), ` +
     `capture=${captureEnabled}, offload=${offloadEnabled}, rejectUnauthorized=${rejectUnauthorized}`,
   );
